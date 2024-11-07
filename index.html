@@ -3,29 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Internet Usage Over Time</title>
+    <title>Internet Usage Line Graph by Continent</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
         }
-        .tooltip {
-            position: absolute;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 5px;
-            visibility: hidden;
-        }
         svg {
             margin: 0 auto;
             display: block;
         }
+        #filters {
+            display: flex;
+            justify-content: center;
+            margin: 20px;
+            gap: 20px;
+        }
+        #continent-select, #country-select {
+            width: 300px;
+        }
     </style>
 </head>
 <body>
-    <h1>Internet Usage Over Time</h1>
+    <h1>Internet Usage Over Time by Continent</h1>
+    <div id="filters">
+        <div>
+            <label for="continent-select">Select Continent:</label>
+            <select id="continent-select">
+                <option value="all">All Continents</option>
+                <option value="Asia">Asia</option>
+                <option value="North America">North America</option>
+                <option value="South America">South America</option>
+                <option value="Europe">Europe</option>
+                <option value="Australia">Australia</option>
+                <option value="Africa">Africa</option>
+                <option value="Antarctica">Antarctica</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div>
+            <label for="country-select">Select Countries/Regions:</label>
+            <select id="country-select" multiple></select>
+        </div>
+    </div>
     <svg id="chart" width="800" height="500"></svg>
-    <div id="tooltip" class="tooltip"></div>
     <script src="script.js"></script>
 </body>
 </html>

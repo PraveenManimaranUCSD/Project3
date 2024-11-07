@@ -13,249 +13,164 @@ const svg = d3.select("#chart")
               .append("g")
               .attr("transform", `translate(${margin.left},${margin.top})`);
 
-// Load the data
+// Create scales
+const xScale = d3.scaleLinear().range([0, width]);
+const yScale = d3.scaleLinear().range([height, 0]);
+
+// Define line generator
+const line = d3.line()
+               .x(d => xScale(d.Year))
+               .y(d => yScale(d.Value));
+
+// Load the data and initialize the dropdowns
 d3.csv(dataUrl, d3.autoType).then(data => {
-    // Filter out rows with missing or non-numeric values in the "Value" column
-    data = data.filter(d => d.Value && !isNaN(d.Value) && d.Year);
+    // Add continent information manually if it's not already in the dataset
+    const continentMap = {
+        "Asia": [
+            "Afghanistan", "Armenia", "Azerbaijan", "Bahrain", "Bangladesh", 
+            "Bhutan", "Brunei Darussalam", "Central Asia", "Eastern Asia", 
+            "South-central Asia", "South-eastern Asia", "Southern Asia", 
+            "Western Asia", "China", "China, Hong Kong SAR", "China, Macao SAR",
+            "India", "Indonesia", "Iran (Islamic Republic of)", "Iraq", "Israel",
+            "Japan", "Jordan", "Kazakhstan", "Kuwait", "Kyrgyzstan", 
+            "Lao People's Dem. Rep.", "Lebanon", "Malaysia", "Maldives", 
+            "Mongolia", "Myanmar", "Nepal", "Oman", "Pakistan", "Philippines", 
+            "Qatar", "Republic of Korea", "Saudi Arabia", "Singapore", 
+            "Sri Lanka", "State of Palestine", "Syrian Arab Republic", 
+            "Tajikistan", "Thailand", "Timor-Leste", "Turkey", "Turkmenistan", 
+            "United Arab Emirates", "Uzbekistan", "Viet Nam", "Yemen"
+        ],
+        "North America": [
+            "Northern America", "Canada", "United States of America", "Mexico", 
+            "Bahamas", "Bermuda", "British Virgin Islands", "Cayman Islands", 
+            "Greenland", "Jamaica", "Puerto Rico", "Trinidad and Tobago", 
+            "United States Virgin Islands"
+        ],
+        "South America": [
+            "Latin America & the Caribbean", "Argentina", "Bolivia (Plurin. State of)", 
+            "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", 
+            "Peru", "Suriname", "Uruguay", "Venezuela (Boliv. Rep. of)"
+        ],
+        "Europe": [
+            "Albania", "Andorra", "Austria", "Belarus", "Belgium", 
+            "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", 
+            "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", 
+            "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Latvia", 
+            "Lithuania", "Luxembourg", "Malta", "Monaco", "Montenegro", 
+            "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", 
+            "Republic of Moldova", "Romania", "Russian Federation", "San Marino", 
+            "Serbia", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", 
+            "Ukraine", "United Kingdom", "Gibraltar", "Guernsey", "Jersey", 
+            "Isle of Man", "Faroe Islands", "Eastern Europe", "Northern Europe", 
+            "Southern Europe", "Western Europe"
+        ],
+        "Australia": [
+            "Australia", "New Zealand", "Oceania", "Australia and New Zealand", 
+            "Micronesia", "Fiji", "Papua New Guinea", "Cook Islands", 
+            "French Polynesia", "New Caledonia", "Niue", "Samoa", "Solomon Islands", 
+            "Tonga", "Vanuatu", "Wallis and Futuna Islands"
+        ],
+        "Africa": [
+            "Northern Africa", "Sub-Saharan Africa", "Eastern Africa", "Middle Africa", 
+            "Southern Africa", "Western Africa", "Algeria", "Angola", "Benin", 
+            "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", 
+            "Central African Republic", "Chad", "Comoros", "Congo", "Côte d’Ivoire",
+            "Dem. Rep. of the Congo", "Djibouti", "Egypt", "Equatorial Guinea", 
+            "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", 
+            "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", 
+            "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", 
+            "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", 
+            "Saint Helena", "Sao Tome and Principe", "Senegal", "Seychelles", 
+            "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", 
+            "Togo", "Uganda", "United Rep. of Tanzania", "Zambia", "Zimbabwe"
+        ],
+        "Antarctica": [
+            // Antarctica is typically not associated with any population or internet data
+        ],
+        "Other": [
+            "Total, all countries or areas", "Other non-specified areas", 
+            "Various small islands, territories, or unspecified areas", "Caribbean", 
+            "LDC§"  // This represents Least Developed Countries or unspecified areas
+        ]
+    };
+    
 
-    // Set up scales
-    const xScale = d3.scaleLinear()
-                     .domain(d3.extent(data, d => d.Year)) // [min, max] of Year
-                     .range([0, width]);
+    data.forEach(d => {
+        // Map each country/area to a continent using continentMap
+        d.Continent = Object.keys(continentMap).find(continent => 
+            continentMap[continent].includes(d.Area)
+        ) || "Other";  // Assign "Other" if no continent found
+    });
 
-    const yScale = d3.scaleLinear()
-                     .domain([0, d3.max(data, d => d.Value)]) // [0, max] of Value
-                     .range([height, 0]);
+    // Populate the continent dropdown
+    const continentSelect = d3.select("#continent-select");
+    const countrySelect = d3.select("#country-select");
 
-    // Define line generator
-    const line = d3.line()
-                   .x(d => xScale(d.Year))
-                   .y(d => yScale(d.Value));
+    // Populate the country dropdown initially with all unique countries
+    const uniqueCountries = Array.from(new Set(data.map(d => d.Area))).sort();
+    uniqueCountries.forEach(country => {
+        countrySelect.append("option").text(country).attr("value", country);
+    });
 
-    // Add the line path
-    svg.append("path")
-       .datum(data)
-       .attr("fill", "none")
-       .attr("stroke", "steelblue")
-       .attr("stroke-width", 2)
-       .attr("d", line);
+    // Set up the initial domain for scales based on the full dataset
+    xScale.domain(d3.extent(data, d => d.Year));
+    yScale.domain([0, d3.max(data, d => d.Value)]);
 
-    // X-axis
-    svg.append("g")
-       .attr("transform", `translate(0, ${height})`)
-       .call(d3.axisBottom(xScale).tickFormat(d3.format("d"))); // Format as integers
+    // Add axes
+    svg.append("g").attr("class", "x-axis").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
+    svg.append("g").attr("class", "y-axis").call(d3.axisLeft(yScale));
 
-    // Y-axis
-    svg.append("g")
-       .call(d3.axisLeft(yScale).ticks(10));
+    // Function to update the chart based on selected countries
+    function updateChart(selectedCountries) {
+        // Filter data for the selected countries/regions
+        const filteredData = data.filter(d => selectedCountries.includes(d.Area));
 
-    // Axis labels
-    svg.append("text")
-       .attr("x", width / 2)
-       .attr("y", height + margin.bottom - 10)
-       .attr("text-anchor", "middle")
-       .text("Year");
+        // Nest data by area (country/region)
+        const nestedData = d3.groups(filteredData, d => d.Area);
 
-    svg.append("text")
-       .attr("x", -height / 2)
-       .attr("y", -margin.left + 15)
-       .attr("transform", "rotate(-90)")
-       .attr("text-anchor", "middle")
-       .text("Internet Usage (%)");
-}).catch(error => {
-    console.error("Error loading or parsing data:", error);
+        // Bind data to lines and update
+        const lines = svg.selectAll(".line").data(nestedData, d => d[0]);
+
+        // Enter new lines
+        lines.enter().append("path")
+            .attr("class", "line")
+            .attr("fill", "none")
+            .attr("stroke", (d, i) => d3.schemeCategory10[i % 10]) // Use different colors for different lines
+            .attr("stroke-width", 2)
+            .merge(lines)
+            .attr("d", d => line(d[1])); // Update path for each country
+
+        // Remove old lines
+        lines.exit().remove();
+    }
+
+    // Initial chart update with no countries selected
+    updateChart([]);
+
+    // Event listener for the continent dropdown
+    continentSelect.on("change", function() {
+        const selectedContinent = this.value;
+        let filteredCountries = uniqueCountries;
+
+        // Filter countries by the selected continent
+        if (selectedContinent !== "all") {
+            filteredCountries = data.filter(d => d.Continent === selectedContinent).map(d => d.Area);
+        }
+
+        // Update the country dropdown options with unique countries for the selected continent
+        countrySelect.selectAll("option").remove();
+        Array.from(new Set(filteredCountries)).sort().forEach(country => {
+            countrySelect.append("option").text(country).attr("value", country);
+        });
+
+        // Trigger chart update based on the initial selection of filtered countries
+        const selectedCountries = Array.from(countrySelect.property("selectedOptions")).map(option => option.value);
+        updateChart(selectedCountries);
+    });
+
+    // Event listener for the country dropdown
+    countrySelect.on("change", function() {
+        const selectedCountries = Array.from(this.selectedOptions).map(option => option.value);
+        updateChart(selectedCountries);
+    });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // Set up dimensions and margins
-// const margin = { top: 40, right: 30, bottom: 50, left: 60 },
-//       width = 800 - margin.left - margin.right,
-//       height = 500 - margin.top - margin.bottom;
-
-// // Create SVG container
-// const svg = d3.select("#chart")
-//               .attr("width", width + margin.left + margin.right)
-//               .attr("height", height + margin.top + margin.bottom)
-//               .append("g")
-//               .attr("transform", `translate(${margin.left},${margin.top})`);
-
-// // Hardcoded dataset for testing
-// const data = [
-//     { Year: 2000, Value: 5.3 },
-//     { Year: 2005, Value: 15.6 },
-//     { Year: 2010, Value: 28.5 },
-//     { Year: 2015, Value: 40.0 },
-//     { Year: 2020, Value: 60.5 }
-// ];
-
-// // Check data in the console
-// console.log("Testing data:", data);
-
-// // Set up scales based on the hardcoded data
-// const xScale = d3.scaleLinear()
-//                  .domain(d3.extent(data, d => d.Year))
-//                  .range([0, width]);
-
-// const yScale = d3.scaleLinear()
-//                  .domain([0, d3.max(data, d => d.Value)])
-//                  .range([height, 0]);
-
-// // Define line generator
-// const line = d3.line()
-//                .x(d => xScale(d.Year))
-//                .y(d => yScale(d.Value));
-
-// // Add the line path
-// svg.append("path")
-//    .datum(data)
-//    .attr("fill", "none")
-//    .attr("stroke", "steelblue")
-//    .attr("stroke-width", 2)
-//    .attr("d", line);
-
-// // X-axis
-// svg.append("g")
-//    .attr("transform", `translate(0, ${height})`)
-//    .call(d3.axisBottom(xScale).tickFormat(d3.format("d"))); // Format as integers
-
-// // Y-axis
-// svg.append("g")
-//    .call(d3.axisLeft(yScale).ticks(10));
-
-// // Axis labels
-// svg.append("text")
-//    .attr("x", width / 2)
-//    .attr("y", height + margin.bottom - 10)
-//    .attr("text-anchor", "middle")
-//    .text("Year");
-
-//    svg.append("text")
-//    .attr("x", -height / 2)
-//    .attr("y", -margin.left + 15)
-//    .attr("transform", "rotate(-90)")
-//    .attr("text-anchor", "middle")
-//    .text("Internet Usage (%)");
-
-// // Tooltip interactions (optional for testing)
-// svg.selectAll("dot")
-//    .data(data)
-//    .enter().append("circle")
-//    .attr("cx", d => xScale(d.Year))
-//    .attr("cy", d => yScale(d.Value))
-//    .attr("r", 5)
-//    .attr("fill", "steelblue");
-
-
-
-
-
-// // Data file path
-// // const dataUrl = 'Internet_data.csv';
-
-// // // Set up dimensions and margins
-// // const margin = { top: 40, right: 30, bottom: 50, left: 60 },
-// //       width = 800 - margin.left - margin.right,
-// //       height = 500 - margin.top - margin.bottom;
-
-// // // Create SVG container
-// // const svg = d3.select("#chart")
-// //               .attr("width", width + margin.left + margin.right)
-// //               .attr("height", height + margin.top + margin.bottom)
-// //               .append("g")
-// //               .attr("transform", `translate(${margin.left},${margin.top})`);
-
-// // // Tooltip for displaying details on hover
-// // const tooltip = d3.select("#tooltip");
-
-// // // Load the data
-// // d3.csv(dataUrl, d3.autoType).then(data => {
-// //     // Filter out unnecessary rows and parse data correctly
-// //     console.log(data); // This will display the data in the console
-// //     data = data.filter(d => !isNaN(d.Value)); // Keeps only rows with numerical values for internet usage
-// //     data.forEach(d => d.Year = +d.Year); // Ensures year is a number
-
-// //     // Check data after filtering
-// //     console.log("Filtered data:", data);
-
-// //     // (Rest of your chart code here...)
-
-// //     // Set up scales
-// //     const xScale = d3.scaleLinear()
-// //                      .domain(d3.extent(data, d => d.Year))
-// //                      .range([0, width]);
-// //     const yScale = d3.scaleLinear()
-// //                      .domain([0, d3.max(data, d => d.Value)])
-// //                      .range([height, 0]);
-
-// //     // Define line generator
-// //     const line = d3.line()
-// //                    .x(d => xScale(d.Year))
-// //                    .y(d => yScale(d.Value));
-
-// //     // Add the line path
-// //     svg.append("path")
-// //        .datum(data)
-// //        .attr("fill", "none")
-// //        .attr("stroke", "steelblue")
-// //        .attr("stroke-width", 2)
-// //        .attr("d", line);
-
-// //     // X-axis
-// //     svg.append("g")
-// //        .attr("transform", `translate(0, ${height})`)
-// //        .call(d3.axisBottom(xScale).tickFormat(d3.format("d"))); // Format as integers
-
-// //     // Y-axis
-// //     svg.append("g")
-// //        .call(d3.axisLeft(yScale).ticks(10));
-
-// //     // Axis labels
-// //     svg.append("text")
-// //        .attr("x", width / 2)
-// //        .attr("y", height + margin.bottom - 10)
-// //        .attr("text-anchor", "middle")
-// //        .text("Year");
-
-// //     svg.append("text")
-// //        .attr("x", -height / 2)
-// //        .attr("y", -margin.left + 15)
-// //        .attr("transform", "rotate(-90)")
-// //        .attr("text-anchor", "middle")
-// //        .text("Internet Usage (%)");
-
-// //     // Tooltip interactions
-// //     svg.selectAll("dot")
-// //        .data(data)
-// //        .enter().append("circle")
-// //        .attr("cx", d => xScale(d.Year))
-// //        .attr("cy", d => yScale(d.Value))
-// //        .attr("r", 5)
-// //        .attr("fill", "steelblue")
-// //        .on("mouseover", (event, d) => {
-// //            tooltip.style("visibility", "visible")
-// //                   .html(`Year: ${d.Year}<br>Usage: ${d.Value}%`);
-// //        })
-// //        .on("mousemove", event => {
-// //            tooltip.style("top", `${event.pageY - 10}px`)
-// //                   .style("left", `${event.pageX + 10}px`);
-// //        })
-// //        .on("mouseout", () => {
-// //            tooltip.style("visibility", "hidden");
-// //        });
-// // });
