@@ -1,5 +1,5 @@
-# Project3
-Project 3: Interactive Visualization using D3.js
+# Project 3
+Collaborators: Praveen Manimaran, Vitush Agarwal
 
 Our project focused on creating an interactive visualization to explore internet usage data across various countries, regions, and continents over time. We selected a line chart as our primary visualization because it effectively communicates trends and changes in usage over time, allowing users to observe and compare patterns easily. We applied data transformations to make the visualization more interactive and meaningful, including filtering by continent and country and a year range slider to control the displayed timeframe. Distinct colors are used for each country in multi-country selections, allowing for easy visual differentiation and comparison. We considered using different line styles, such as dashed lines, but found color distinctions to be more intuitive for users.
 
