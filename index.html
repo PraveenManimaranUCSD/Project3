@@ -22,6 +22,10 @@
         #continent-select, #country-select {
             width: 300px;
         }
+        #selected-countries {
+            text-align: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -45,8 +49,20 @@
             <label for="country-select">Select Countries/Regions:</label>
             <select id="country-select" multiple></select>
         </div>
+        <div>
+            <label for="year-range">Select Year Range:</label>
+            <input type="range" id="year-start" min="1995" max="2025" value="1995" step="1">
+            <input type="range" id="year-end" min="1995" max="2025" value="2025" step="1">
+        </div>
     </div>
     <svg id="chart" width="800" height="500"></svg>
+
+    <!-- Selected countries display area -->
+    <div id="selected-countries">
+        <h3>Selected Countries:</h3>
+        <ul id="selected-countries-list"></ul>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
